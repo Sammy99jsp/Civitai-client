@@ -18,6 +18,21 @@ pub struct Paginated<T> {
     metadata: PaginationMeta,
 }
 
+impl<T> Paginated<T> {
+    pub fn first_few(&self) -> (impl Iterator<Item = &T> + '_, &PaginationMeta) {
+        (self.items.iter(), &self.metadata)
+    }
+
+    pub fn map<U>(self, mapper: impl Fn(T) -> U) -> Paginated<U> {
+        let items = self.items.into_iter().map(mapper).collect();
+
+        Paginated::<U> {
+            items,
+            metadata: self.metadata
+        }
+    }
+}
+
 impl<'a, T: Clone + DeserializeOwned + 'a> Paginated<T> {
     pub fn into_stream(self) -> PageIterator<'a, T> {
         PageIterator {

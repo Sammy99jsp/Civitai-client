@@ -1,5 +1,8 @@
 #![allow(non_camel_case_types)]
-use crate::api::{paginated::Paginated, types::{Model, model::Type, Nsfw}};
+use crate::api::{
+    paginated::Paginated,
+    types::{model::Type, Model, Nsfw, Period},
+};
 
 use super::Endpoint;
 
@@ -25,27 +28,6 @@ impl Sorting {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-pub enum Period {
-    AllTime,
-    Year,
-    #[default]
-    Month,
-    Week,
-    Day,
-}
-
-impl Period {
-    pub fn value(self) -> &'static str {
-        match self {
-            Period::AllTime => "AllTime",
-            Period::Year => "Year",
-            Period::Month => "Month",
-            Period::Week => "Week",
-            Period::Day => "Day",
-        }
-    }
-}
 
 #[derive(Debug, Default)]
 pub struct Params {
@@ -56,11 +38,11 @@ pub struct Params {
     pub sort: Option<Sorting>,
     pub period: Option<Period>,
     pub rating: Option<f64>,
-    pub nsfw: Option<bool>,
+    pub nsfw: Option<Nsfw>,
 }
 
-impl Type {
-    fn value(self) -> &'static str {
+impl ToString for Type {
+    fn to_string(&self) -> String {
         match self {
             Type::Checkpoint => "Checkpoint",
             Type::TextualInversion => "TextualInversion",
@@ -69,10 +51,9 @@ impl Type {
             Type::Lora => "Lora",
             Type::Controlnet => "Controlnet",
             Type::Poses => "Poses",
-        }
+        }.to_string()
     }
 }
-
 
 impl MapLike for Params {
     fn into_map(self) -> std::collections::HashMap<String, String> {
@@ -80,8 +61,14 @@ impl MapLike for Params {
             ("query".to_string(), self.query),
             ("tag".to_string(), self.tag),
             ("username".to_string(), self.username),
-            ("types".to_string(), self.types.map(Type::value).map(ToString::to_string)),
-            ("period".to_string(), self.period.map(Period::value).map(ToString::to_string)),
+            (
+                "types".to_string(),
+                self.types.map(|a| a.to_string()),
+            ),
+            (
+                "period".to_string(),
+                self.period.map(|a| a.to_string()),
+            ),
             ("rating".to_string(), self.rating.map(|a| a.to_string())),
             ("nsfw".to_string(), self.nsfw.map(|a| a.to_string())),
         ]

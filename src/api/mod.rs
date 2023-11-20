@@ -5,33 +5,37 @@ use reqwest::{Client, IntoUrl, RequestBuilder};
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_aux::field_attributes::deserialize_number_from_string;
 
-pub mod paginated;
 pub mod endpoints;
+pub mod paginated;
 pub mod types;
 pub mod utils;
-       
 
-#[derive(Debug, Deserialize)]
+pub use paginated::{PageIterator, Paginated};
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PaginationMeta {
     ///
     /// The total number of items available
     ///
+    #[serde(default)]
     pub total_items: usize,
-
+    
     ///
     /// The the current page you are at
     ///
+    #[serde(default)]
     pub current_page: usize,
-
+    
     ///
     /// The the size of the batch
     ///
+    #[serde(default)]
     pub page_size: usize,
 
     ///
     /// The total number of pages
     ///
+    #[serde(default)]
     pub total_pages: usize,
 
     ///
@@ -60,8 +64,7 @@ pub async fn send_request<T: DeserializeOwned>(
 
     fs::write(".DEBUG", &txt).expect("Valid debug write!");
 
-    serde_json::from_str(&txt)
-        .map_err(anyhow::Error::from)
+    serde_json::from_str(&txt).map_err(anyhow::Error::from)
 }
 
 #[cfg(test)]

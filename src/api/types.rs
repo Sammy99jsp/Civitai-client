@@ -1,4 +1,7 @@
+use futures::Future;
 use serde::Deserialize;
+
+use super::{Paginated, endpoints::{self, Endpoint}};
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -31,15 +34,55 @@ pub enum Nsfw {
     #[serde(rename = "Mature")]
     Mature,
 
-    #[serde(rename = "x")]
+    #[serde(rename = "X")]
     X,
+}
+
+impl ToString for Nsfw {
+    fn to_string(&self) -> String {
+        match self {
+            Nsfw::None => "None",
+            Nsfw::Soft => "Soft",
+            Nsfw::Mature => "Mature",
+            Nsfw::X => "X",
+        }
+        .to_string()
+    }
+}
+#[derive(Debug, Clone, Copy, Default)]
+pub enum Period {
+    AllTime,
+    Year,
+    #[default]
+    Month,
+    Week,
+    Day,
+}
+
+impl ToString for Period {
+    fn to_string(&self) -> String {
+        match self {
+            Period::AllTime => "AllTime",
+            Period::Year => "Year",
+            Period::Month => "Month",
+            Period::Week => "Week",
+            Period::Day => "Day",
+        }
+        .to_string()
+    }
 }
 
 pub mod model {
     use std::default;
 
     use chrono::{DateTime, Utc};
+    use futures::Future;
     use serde::Deserialize;
+
+    use crate::api::{
+        endpoints::{self, Endpoint},
+        Paginated,
+    };
 
     use super::{super::utils::datetime, Nsfw};
 
@@ -156,6 +199,17 @@ pub mod model {
         /// Model files for this version
         ///
         pub files: Vec<File>,
+    }
+
+    impl Version {
+        pub fn get_images(
+            &self,
+        ) -> impl Future<Output = anyhow::Result<Paginated<Image>>> + 'static {
+            endpoints::images::images::get(endpoints::images::Params {
+                model_version_id: self.id.into(),
+                ..Default::default()
+            })
+        }
     }
 
     #[derive(Debug, Deserialize, Clone, Copy)]
@@ -304,28 +358,63 @@ pub mod model {
 
     #[derive(Debug, Deserialize, Clone)]
     #[serde(rename_all = "camelCase")]
+    pub struct ImageStats {
+        cry_count: Option<usize>,
+        laugh_count: Option<usize>,
+        like_count: Option<usize>,
+        heart_count: Option<usize>,
+        comment_count: Option<usize>,
+    }
+
+    #[derive(Debug, Deserialize, Clone)]
+    #[serde(rename_all = "camelCase")]
     pub struct Image {
         ///
-        /// The url for the image
+        /// Unique id for this image,
+        ///
+        pub id: usize,
+
+        ///
+        /// The url of the image at it's source resolution
         ///
         pub url: String,
 
         ///
-        /// Whether or not the image is NSFW
+        /// The blurhash of the image
         ///
-        #[serde(default)]
-        pub nsfw: Nsfw,
+        pub hash: Option<String>,
 
         ///
-        /// Width of the image in pixels
+        /// The width of the image
         ///
         pub width: usize,
 
         ///
-        /// Height of the image in pixels
+        /// The height of the image
+        ///The ID of the post the image belongs toge
         ///
-        pub height: usize,
-        // TODO: Add image metadata HERE!
+        pub nsfw_level: Nsfw,
+
+        ///
+        /// The date the image was posted
+        ///
+        #[serde(deserialize_with = "datetime::deserialize_option")]
+        pub created_at: Option<DateTime<Utc>>,
+
+        ///
+        /// The ID of the post the image belongs to
+        ///
+        pub post_id: Option<usize>,
+
+        ///
+        /// Stats to do with reactions and comments.
+        ///
+        pub stats: ImageStats,
+
+        ///
+        /// The username of the creator
+        ///
+        pub username: Option<String>,
     }
 }
 
@@ -378,4 +467,16 @@ pub struct Model {
     ///
     #[serde(rename = "modelVersions")]
     pub versions: Vec<model::Version>,
+}
+
+
+impl Model {
+    pub fn get_images(
+        &self,
+    ) -> impl Future<Output = anyhow::Result<Paginated<model::Image>>> + 'static {
+        endpoints::images::images::get(endpoints::images::Params {
+            model_version_id: self.id.into(),
+            ..Default::default()
+        })
+    }
 }

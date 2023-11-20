@@ -1,5 +1,6 @@
 pub mod creators;
-mod models;
+pub mod models;
+pub mod images;
 
 use std::collections::HashMap;
 
@@ -46,7 +47,12 @@ mod tests {
     use super::models::{models, Params as ModelParam};
     #[tokio::test]
     async fn test_models() -> anyhow::Result<()> {
-        let mut c = models::get(ModelParam { query: "virile".to_string().into(), ..Default::default() }).await?.into_stream();
+        let mut c = models::get(ModelParam {
+            query: "happy".to_string().into(),
+            ..Default::default()
+        })
+        .await?
+        .into_stream();
 
         while let Some(model) = c.next().await {
             println!("{model:#?}")
